@@ -4,8 +4,27 @@
 
 **a. Initial design**
 
-#- Briefly describe your initial UML design.
-#- What classes did you include, and what responsibilities did you assign to each?
+My UML design (`diagrams/uml.mmd`) has four classes, now mirrored as skeletons in `pawpal_system.py`:
+
+1. Class 1: Pet
+- Identity info (name, species, gender, age) plus a list of `Task`s assigned to it. Responsible for adding/editing/deleting its own tasks.
+
+2. Class 2: Owner  
+- Contact info, availability, and a list of `Pet`s. Responsible for adding/editing/deleting pets and updating availability. Exposes pet/task data via `get_all_tasks()` but does not do scheduling itself.
+
+3. Class 3: Task
+- a single care activity: name, description, `duration_minutes`, `priority`, and `is_recurring`. Duration and priority live here, not on Scheduler, since they describe the activity.
+
+4. Class 4: Scheduler
+- The "brain." Takes an `Owner`, pulls tasks across all their pets via `generate_plan()`, and can justify the result via `explain_plan()`. Holds only the schedule date and an overlap-allowed flag.
+
+Relationships: Owner owns 1..* Pets, Pet has 0..* Tasks, Scheduler schedules many Tasks, and Scheduler reads Owner's availability.
+
+This refines my original brainstorm below by separating *who owns data* (Owner, Pet, Task) from *who acts on it* (Scheduler) — my first draft had Owner-management methods duplicated onto Scheduler, which broke single responsibility once I thought it through.
+
+<details>
+<summary>Original brainstorm (Steps 1-2)</summary>
+
 Step 1: Core actions user should be able to perform:
 1. Add, remove, or edit their new or current pet information
 2. Schedule for a pet, for example: a walk
@@ -40,6 +59,8 @@ What actions it can perform (methods)
 4. Object 4: Task 
     - Add a new task, update current task
 
+</details>
+
 Your job is to design the system first (UML), then implement the logic in Python, then connect it to the Streamlit UI.
 
 ## What you will build
@@ -57,8 +78,12 @@ Your final app should:
 
 **b. Design changes**
 
-- Did your design change during implementation?
-- If yes, describe at least one change and why you made it.
+After drafting `pawpal_system.py`, I asked my AI assistant to review it for missing relationships or bottlenecks. Two changes came out of that:
+
+1. `Owner.get_all_tasks()` originally would have returned a flat list of `Task`s with no link back to which `Pet` each one belongs to. Since the daily plan needs to say "Mochi's walk" not just "walk," I'm changing it to return `(pet, task)` pairs instead.
+2. `Scheduler` had no field to store the result of `generate_plan()`, so `explain_plan()` had nothing to explain. Adding a `self.plan` attribute set by `generate_plan()` so `explain_plan()` can reference it afterward.
+
+Not yet resolved: `Task` has no time-of-day field, only `duration_minutes` — I still need to decide whether the Scheduler assigns start times or tasks carry a preferred slot.
 
 ---
 
