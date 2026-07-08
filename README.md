@@ -59,17 +59,44 @@ Rex: Litter box (5 min) - medium priority, no fixed time
 
 ```bash
 # Run the full test suite:
-pytest
+python -m pytest
 
 # Run with coverage:
 pytest --cov
 ```
 
+The suite (`tests/test_pawpal.py`) covers:
+- **Sorting correctness** — `sort_by_time()` returns tasks in chronological order regardless of insertion order, and excludes untimed tasks.
+- **Filtering** — `filter_tasks()` by pet name, by completion status, and confirms a pet with zero tasks returns an empty result rather than an error.
+- **Recurrence logic** — `mark_task_complete()` on a daily task creates a new task due exactly one day later (via `timedelta`) and leaves the original marked complete; a non-recurring task does not spawn a duplicate.
+- **Conflict detection** — `detect_conflicts()` flags two tasks (different pets) at the exact same time, and returns an empty list when there's no overlap or no tasks at all.
+
 Sample test output:
 
 ```
-# Paste your pytest output here
+============================= test session starts =============================
+platform win32 -- Python 3.13.0, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\Users\SN\CP\W4\ai110-module2show-pawpal-starter
+plugins: anyio-4.14.1
+collected 12 items
+
+tests/test_pawpal.py::test_mark_complete_changes_status PASSED           [  8%]
+tests/test_pawpal.py::test_add_task_increases_pet_task_count PASSED      [ 16%]
+tests/test_pawpal.py::test_sort_by_time_returns_chronological_order PASSED [ 25%]
+tests/test_pawpal.py::test_sort_by_time_excludes_untimed_tasks PASSED    [ 33%]
+tests/test_pawpal.py::test_filter_tasks_by_pet_name PASSED               [ 41%]
+tests/test_pawpal.py::test_filter_tasks_by_completion_status PASSED      [ 50%]
+tests/test_pawpal.py::test_filter_tasks_on_pet_with_no_tasks_returns_empty PASSED [ 58%]
+tests/test_pawpal.py::test_mark_task_complete_creates_next_daily_occurrence PASSED [ 66%]
+tests/test_pawpal.py::test_mark_task_complete_on_non_recurring_task_does_not_duplicate PASSED [ 75%]
+tests/test_pawpal.py::test_detect_conflicts_flags_same_time_different_pets PASSED [ 83%]
+tests/test_pawpal.py::test_detect_conflicts_returns_empty_when_no_overlap PASSED [ 91%]
+tests/test_pawpal.py::test_detect_conflicts_with_no_tasks_returns_empty PASSED [100%]
+
+============================= 12 passed in 0.04s ==============================
 ```
+
+**Confidence Level:** ⭐⭐⭐⭐☆ (4/5) — all core scheduling algorithms (sorting, filtering, recurrence, conflict detection) are covered with both happy-path and edge-case tests. Not yet tested: the `Scheduler.generate_plan()`/`explain_plan()` priority-ordering path for untimed tasks, and the Streamlit UI layer in `app.py`, which is why this isn't a 5/5.
 
 ## 📐 Smarter Scheduling
 
