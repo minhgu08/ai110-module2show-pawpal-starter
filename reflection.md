@@ -78,10 +78,13 @@ Your final app should:
 
 **b. Design changes**
 
-After drafting `pawpal_system.py`, I asked my AI assistant to review it for missing relationships or bottlenecks. Two changes came out of that:
+After drafting `pawpal_system.py`, I asked my claude to review it for missing relationships or bottlenecks per given instructions. Two changes
 
-1. `Owner.get_all_tasks()` originally would have returned a flat list of `Task`s with no link back to which `Pet` each one belongs to. Since the daily plan needs to say "Mochi's walk" not just "walk," I'm changing it to return `(pet, task)` pairs instead.
-2. `Scheduler` had no field to store the result of `generate_plan()`, so `explain_plan()` had nothing to explain. Adding a `self.plan` attribute set by `generate_plan()` so `explain_plan()` can reference it afterward.
+1. Change 1: 
+- 'Owner.get_all_tasks()' originally would have returned a flat list of `Task`s with no link back to which `Pet` each one belongs to. Since the daily plan needs to say "Mochi's walk" not just "walk," I'm changing it to return `(pet, task)` pairs instead.
+
+2. Change 2:
+- 'Scheduler' had no field to store the result of `generate_plan()`, so `explain_plan()` had nothing to explain. Adding a `self.plan` attribute set by `generate_plan()` so `explain_plan()` can reference it afterward.
 
 Not yet resolved: `Task` has no time-of-day field, only `duration_minutes` — I still need to decide whether the Scheduler assigns start times or tasks carry a preferred slot.
 
@@ -89,15 +92,16 @@ Not yet resolved: `Task` has no time-of-day field, only `duration_minutes` — I
 
 ## 2. Scheduling Logic and Tradeoffs
 
-**a. Constraints and priorities**
+2a. Constraints and priorities
 
 - What constraints does your scheduler consider (for example: time, priority, preferences)?
 - How did you decide which constraints mattered most?
 
-**b. Tradeoffs**
+2b. Tradeoffs
 
-- Describe one tradeoff your scheduler makes.
-- Why is that tradeoff reasonable for this scenario?
+`Scheduler.detect_conflicts()` only flags tasks that share the *exact same* `start_time` — it does not check whether task windows (`start_time` to `start_time + duration_minutes`) overlap. For example, an 8:00–8:30 walk and an 8:15 feeding would not be flagged, even though they genuinely overlap.
+
+This is reasonable for now because exact-match conflicts are the most common and highest-signal case (double-booking a fixed appointment), and the check stays O(n) with a simple dict grouped by `start_time` — no need to compare every pair of tasks. Real overlap detection would require comparing time *ranges* pairwise (or an interval-sweep algorithm), which is more complex and only pays off once tasks have more granular durations than they do today. I considered a `groupby`-based rewrite of this method for conciseness, but rejected it because `itertools.groupby` only groups consecutive elements and silently depends on the input already being sorted by the same key — a fragile assumption that would be easy to break in a future edit without an obvious error. I kept the plain dict version because every line's behavior is visible at the call site, which matters more here than saving a few lines.
 
 ---
 

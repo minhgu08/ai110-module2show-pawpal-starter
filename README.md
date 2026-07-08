@@ -42,7 +42,7 @@ pip install -r requirements.txt
 6. Connect your logic to the Streamlit UI in `app.py`.
 7. Refine UML so it matches what you actually built.
 
-## 🖥️ Sample Output
+## 🖥️ Sample Output (Phase 2- Step 2:Create and Run a Demo Script)
 
 Output from running `python main.py`:
 
@@ -73,14 +73,12 @@ Sample test output:
 
 ## 📐 Smarter Scheduling
 
-> Fill in once you've implemented scheduling logic.
-
 | Feature | Method(s) | Notes |
 |---------|-----------|-------|
-| Task sorting | | e.g., by priority, duration |
-| Filtering | | e.g., skip tasks if time runs out |
-| Conflict handling | | e.g., overlapping time slots |
-| Recurring tasks | | e.g., daily vs. weekly |
+| Task sorting | `Scheduler.sort_by_time()` | Returns `(pet, task)` pairs with a `start_time`, sorted earliest to latest via `sorted()` with a lambda key on `task.start_time`. Untimed tasks are excluded — use `filter_tasks()` for those. |
+| Filtering | `Scheduler.filter_tasks(owner, pet_name=None, is_complete=None)` | Filters `(pet, task)` pairs by pet name and/or completion status; both filters are optional and combine with AND. |
+| Conflict handling | `Scheduler.detect_conflicts(owner)` | Lightweight check: groups all timed tasks by exact `start_time` (across every pet, not just one) and returns a warning string for any time slot with 2+ tasks, instead of raising an exception. Only catches exact-time matches, not overlapping durations — see `reflection.md` § 2b for that tradeoff. |
+| Recurring tasks | `Task.next_occurrence()`, `Pet.mark_task_complete(task_name)` | `Task.frequency` (`"daily"`/`"weekly"`) plus `Task.due_date` drive recurrence. Calling `Pet.mark_task_complete()` marks the task done and, if it recurs, automatically creates and appends the next occurrence using `timedelta` (`+1 day` or `+7 days`) so month/year boundaries are handled correctly. |
 
 ## 📸 Demo Walkthrough
 
