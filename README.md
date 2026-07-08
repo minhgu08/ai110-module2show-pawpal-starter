@@ -57,6 +57,13 @@ Rex: Litter box (5 min) - medium priority, no fixed time
 
 ## 🧪 Testing PawPal+
 
+**Core behaviors verified:**
+1. Sorting correctness — timed tasks are returned in chronological order.
+2. Filtering — tasks can be filtered by pet name and/or completion status.
+3. Recurrence logic — completing a daily/weekly task automatically schedules the next occurrence.
+4. Conflict detection — two tasks at the exact same time are flagged as a scheduling conflict.
+5. Task/pet state changes — marking a task complete and adding tasks to a pet update state correctly.
+
 ```bash
 # Run the full test suite:
 python -m pytest
