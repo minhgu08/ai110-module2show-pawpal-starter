@@ -1,0 +1,54 @@
+classDiagram
+    class Task {
+        +string name
+        +string description
+        +int duration_minutes
+        +string priority
+        +time start_time
+        +string frequency
+        +date due_date
+        +bool is_complete
+        +mark_complete()
+        +mark_incomplete()
+        +next_occurrence() Task
+    }
+
+    class Pet {
+        +string name
+        +string species
+        +string gender
+        +int age
+        +list~Task~ tasks
+        +add_task(task)
+        +edit_task(task_name, updates)
+        +delete_task(task_name)
+        +mark_task_complete(task_name) Task
+    }
+
+    class Owner {
+        +string name
+        +string contact_phone
+        +string email
+        +dict availability
+        +list~Pet~ pets
+        +add_pet(pet)
+        +edit_pet_info(pet_name, updates)
+        +delete_pet(pet_name)
+        +update_availability(availability)
+        +get_all_tasks() list
+    }
+
+    class Scheduler {
+        +date schedule_date
+        +bool allow_overlap
+        +list plan
+        +sort_by_time(owner) list
+        +filter_tasks(owner, pet_name, is_complete) list
+        +generate_plan(owner) list
+        +detect_conflicts(owner) list
+        +explain_plan() list
+    }
+
+    Owner "1" --> "0..*" Pet : owns
+    Pet "1" --> "0..*" Task : has
+    Scheduler "1" --> "1" Owner : reads tasks from

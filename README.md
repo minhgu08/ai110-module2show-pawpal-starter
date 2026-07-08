@@ -22,6 +22,15 @@ Your final app should:
 - Display the plan clearly (and ideally explain the reasoning)
 - Include tests for the most important scheduling behaviors
 
+## ✨ Features
+
+- **Sorting by time** — `Scheduler.sort_by_time()` orders every timed task chronologically, regardless of the order they were entered in.
+- **Priority-based fallback** — `Scheduler.generate_plan()` places timed tasks first (earliest to latest), then orders any remaining untimed tasks by priority (high → medium → low).
+- **Filtering** — `Scheduler.filter_tasks()` narrows the task list by pet name and/or completion status.
+- **Conflict warnings** — `Scheduler.detect_conflicts()` flags when two tasks (for any pets) are scheduled at the exact same time, so double-bookings are caught before the day starts.
+- **Daily/weekly recurrence** — `Task.next_occurrence()` and `Pet.mark_task_complete()` automatically schedule the next occurrence of a recurring task once the current one is marked done.
+- **Plan explanations** — `Scheduler.explain_plan()` states, in plain language, why each task landed where it did (fixed time vs. priority).
+
 ## Getting started
 
 ### Setup
@@ -116,12 +125,73 @@ tests/test_pawpal.py::test_detect_conflicts_with_no_tasks_returns_empty PASSED [
 
 ## 📸 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+### Main UI features
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+The Streamlit app (`app.py`) is organized into three sections:
+
+- **Owner** — enter/edit the owner's name.
+- **Pets** — add a pet (name, species, gender, age) via a form; added pets appear in a running list.
+- **Tasks** — add a task to any existing pet (title, duration, priority, and an optional fixed time); all current tasks are shown in a table.
+- **Build Schedule** — click "Generate schedule" to run the Scheduler against every pet's tasks. Any conflicts are shown as warnings first, followed by the full schedule as a table, with a collapsible "Why this order?" section explaining the ordering.
+
+### Example workflow
+
+1. Enter an owner name (e.g. "Jordan").
+2. Add a pet, "Mochi" (dog).
+3. Add a second pet, "Rex" (cat).
+4. Add a task "Morning walk" for Mochi at a fixed time of 08:00.
+5. Add a task "Vet check-in call" for Rex, also fixed at 08:00.
+6. Click "Generate schedule."
+
+### Key Scheduler behaviors shown
+
+- **Conflict warning**: because both tasks above share the 08:00 slot, `detect_conflicts()` raises a warning naming both pets and tasks *before* the schedule is shown — the most useful place for an owner to catch it, since they can fix the clash before committing to the plan.
+- **Sorting**: any additional timed tasks (e.g. an 08:30 feeding) appear in the table in chronological order, not the order they were entered.
+- **Priority fallback**: tasks with no fixed time (e.g. medication, litter box) are still included, ordered by priority instead of time.
+- **Recurrence**: completing a daily task (via the underlying `Pet.mark_task_complete()` logic) automatically schedules its next occurrence one day later.
+
+### Sample CLI output (`python main.py`)
+
+```
+Today's Schedule (2026-07-08):
+----------------------------------------
+Mochi: Morning walk (30 min) - scheduled for 08:00
+Rex: Vet check-in call (10 min) - scheduled for 08:00
+Mochi: Feeding (10 min) - scheduled for 08:30
+Rex: Evening play (15 min) - scheduled for 18:00
+Mochi: Medication (5 min) - high priority, no fixed time
+Rex: Litter box (5 min) - medium priority, no fixed time
+
+Sorted by time (sort_by_time):
+----------------------------------------
+08:00 - Mochi: Morning walk
+08:00 - Rex: Vet check-in call
+08:30 - Mochi: Feeding
+18:00 - Rex: Evening play
+
+Rex's tasks only (filter_tasks by pet):
+----------------------------------------
+Rex: Litter box (complete=True)
+Rex: Evening play (complete=False)
+Rex: Vet check-in call (complete=False)
+
+Incomplete tasks only (filter_tasks by status):
+----------------------------------------
+Mochi: Morning walk
+Mochi: Feeding
+Mochi: Medication
+Rex: Evening play
+Rex: Vet check-in call
+
+Recurring task check (mark_task_complete):
+----------------------------------------
+Before: Mochi has 3 tasks
+After:  Mochi has 4 tasks
+Next occurrence created: 'Medication' due 2026-07-09 (frequency=daily)
+
+Conflict check:
+----------------------------------------
+WARNING: Conflict at 08:00: Mochi's 'Morning walk', Rex's 'Vet check-in call' are scheduled at the same time.
+```
 
 **Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->

@@ -4,23 +4,21 @@
 
 **a. Initial design**
 
-My UML design (`diagrams/uml.mmd`) has four classes, now mirrored as skeletons in `pawpal_system.py`:
+My UML diagram has four main classes that are now reflected in pawpal_system.py:
 
-1. Class 1: Pet
-- Identity info (name, species, gender, age) plus a list of `Task`s assigned to it. Responsible for adding/editing/deleting its own tasks.
+Class 1: Pet
+Stores pet information (name, species, gender, age) and its assigned tasks. It manages its own tasks.
 
-2. Class 2: Owner  
-- Contact info, availability, and a list of `Pet`s. Responsible for adding/editing/deleting pets and updating availability. Exposes pet/task data via `get_all_tasks()` but does not do scheduling itself.
+Class 2: Owner
+Stores owner information, availability, and their pets. It manages pets and provides task information to Scheduler.
 
-3. Class 3: Task
-- a single care activity: name, description, `duration_minutes`, `priority`, and `is_recurring`. Duration and priority live here, not on Scheduler, since they describe the activity.
+Class 3: Task
+Represents a care activity with information like name, description, duration, priority, and whether it repeats.
 
-4. Class 4: Scheduler
-- The "brain." Takes an `Owner`, pulls tasks across all their pets via `generate_plan()`, and can justify the result via `explain_plan()`. Holds only the schedule date and an overlap-allowed flag.
+Class 4: Scheduler
+Handles scheduling logic by collecting tasks from the owner's pets, generating a plan, and explaining the schedule.
 
-Relationships: Owner owns 1..* Pets, Pet has 0..* Tasks, Scheduler schedules many Tasks, and Scheduler reads Owner's availability.
-
-This refines my original brainstorm below by separating *who owns data* (Owner, Pet, Task) from *who acts on it* (Scheduler) — my first draft had Owner-management methods duplicated onto Scheduler, which broke single responsibility once I thought it through.
+This design improved from my original brainstorm by separating data ownership from scheduling logic. My first idea placed some owner management functions inside Scheduler, but I realized it made the responsibilities less clear.
 
 <details>
 <summary>Original brainstorm (Steps 1-2)</summary>
@@ -76,17 +74,16 @@ Your final app should:
 
 
 
-**b. Design changes**
+b. Design changes
+After creating pawpal_system.py, I asked Claude to review my design and look for missing relationships or possible issues. Two changes I made:
 
-After drafting `pawpal_system.py`, I asked my claude to review it for missing relationships or bottlenecks per given instructions. Two changes
+1. Change 1: Owner.get_all_tasks()
+- Originally, it returned only a list of tasks without showing which pet they belonged to. I changed it to return pet- task pairs so the schedule can show information like "Mochi's walk" instead of only "walk"
 
-1. Change 1: 
-- 'Owner.get_all_tasks()' originally would have returned a flat list of `Task`s with no link back to which `Pet` each one belongs to. Since the daily plan needs to say "Mochi's walk" not just "walk," I'm changing it to return `(pet, task)` pairs instead.
+2. Change 2: Scheduler
+- Scheduler did not store the generated plan, so explain_plan() had nothing to reference. I added self.plan so the Scheduler can explain the generated schedule later.
 
-2. Change 2:
-- 'Scheduler' had no field to store the result of `generate_plan()`, so `explain_plan()` had nothing to explain. Adding a `self.plan` attribute set by `generate_plan()` so `explain_plan()` can reference it afterward.
-
-Not yet resolved: `Task` has no time-of-day field, only `duration_minutes` — I still need to decide whether the Scheduler assigns start times or tasks carry a preferred slot.
+One thing I would still improve is deciding whether tasks should store preferred times or whether Scheduler should assign start times.
 
 ---
 
@@ -94,55 +91,76 @@ Not yet resolved: `Task` has no time-of-day field, only `duration_minutes` — I
 
 2a. Constraints and priorities
 
-- What constraints does your scheduler consider (for example: time, priority, preferences)?
-- How did you decide which constraints mattered most?
+- What constraints does your scheduler consider (for example: time, priority, preferences)? And How did you decide which constraints mattered most?
+--> Ans: The scheduler considers task time and priority when creating a plan. I focused on these because they directly affect how tasks are ordered in the daily schedule. Completion status is used separately when filtering tasks, and recurring tasks are handled when creating future task occurrences.
 
 2b. Tradeoffs
+--> Ans: Scheduler.detect_conflicts() currently only checks tasks with the same start_time. It does not detect overlapping ranges, such as an 8:00–8:30 walk and an 8:15 feeding.
 
-`Scheduler.detect_conflicts()` only flags tasks that share the *exact same* `start_time` — it does not check whether task windows (`start_time` to `start_time + duration_minutes`) overlap. For example, an 8:00–8:30 walk and an 8:15 feeding would not be flagged, even though they genuinely overlap.
+I decided to keep this simpler version because it handles the most obvious double-booking cases and is easier to understand and maintain. A more advanced version would compare task durations and detect all overlapping time ranges, which would be a future improvement.
 
-This is reasonable for now because exact-match conflicts are the most common and highest-signal case (double-booking a fixed appointment), and the check stays O(n) with a simple dict grouped by `start_time` — no need to compare every pair of tasks. Real overlap detection would require comparing time *ranges* pairwise (or an interval-sweep algorithm), which is more complex and only pays off once tasks have more granular durations than they do today. I considered a `groupby`-based rewrite of this method for conciseness, but rejected it because `itertools.groupby` only groups consecutive elements and silently depends on the input already being sorted by the same key — a fragile assumption that would be easy to break in a future edit without an obvious error. I kept the plain dict version because every line's behavior is visible at the call site, which matters more here than saving a few lines.
-
+I also considered an AI suggestion using groupby, but I kept the dict-based approach because groupby depends on the tasks already being sorted by start_time, which my scheduler does not guarantee.
 ---
 
 ## 3. AI Collaboration
 
-**a. How you used AI**
+a. How you used AI?
 
-- How did you use AI tools during this project (for example: design brainstorming, debugging, refactoring)?
+- How did you use AI tools during this project? 
+--> Ans:I used AI to review code, suggest updates, add comments, polish my reflection writing, and review relationships between classes using Mermaid.js.
+
 - What kinds of prompts or questions were most helpful?
+--> Ans: The most helpful prompts were asking AI to review the design decisions, explain errors, and suggest possible improvements.
 
-**b. Judgment and verification**
+b. Judgment and verification
 
-- Describe one moment where you did not accept an AI suggestion as-is.
-- How did you evaluate or verify what the AI suggested?
+- Describe one moment where you did not accept an AI suggestion as-is. And How did you evaluate or verify what the AI suggested?
+--> Ans: AI suggested a shorter groupby rewrite for detect_conflicts(), but I decided not to use it. I looked into how groupby works and realized it depends on tasks already being sorted by start_time, which my scheduler does not enforce.
 
+I kept the dict-based approach because it was easier for me to understand and less likely to break if the code changes later.
+
+c. How did separate chat sessions for different phases help you stay organized?
+--> Ans: Using separate chat sessions helped me focus on one phase at a time, such as design, coding, testing, and reflection. It made it easier to track decisions and avoid mixing different problems together.
 ---
 
 ## 4. Testing and Verification
 
-**a. What you tested**
+a. What you tested
+- What behaviors did you test and why were these tests important?
+--> Ans: I tested four core scheduler behaviors:
+1. Sorting tasks by time
+2. Filtering by pet and completion status
+3. Handling recurring tasks after completion.
+4. Detecting conflicts. 
 
-- What behaviors did you test?
-- Why were these tests important?
+These tests help verify the main scheduling logic and catch errors that could silently create incorrect daily plans.
 
-**b. Confidence**
+b. Confidence
 
-- How confident are you that your scheduler works correctly?
-- What edge cases would you test next if you had more time?
+- How confident are you that your scheduler works correctly? Amd What edge cases would you test next if you had more time?
+--> Answer: All 12 tests pass, confident that the core scheduler logic works correctly.
+
+I tested both normal cases and edge cases like empty lists, untimed tasks, and non-recurring tasks. If I had more time, I would add tests for overlapping time conflicts, more recurrence scenarios, and the full generate_plan() process with different priority levels.
 
 ---
 
 ## 5. Reflection
 
-**a. What went well**
+a. What went well
 
 - What part of this project are you most satisfied with?
+--> Ans: I'm satisfied with separating responsibilities between Owner/Pet (storing data) and Scheduler (handling scheduling logic). It made adding features like detect_conflicts() easier without changing the existing data structure.
 
-**b. What you would improve**
+b. What you would improve
 
 - If you had another iteration, what would you improve or redesign?
+--> Ans: 
+detect_conflicts() currently only checks exact matching times, not overlapping time ranges. If I had another iteration, I would improve it to compare task durations so it can detect more realistic scheduling conflicts.
 
-**c. Key takeaway**
+
+c. Key takeaway
 
 - What is one important thing you learned about designing systems or working with AI on this project?
+--> Ans:
+I learned that AI can quickly suggest solutions, but I still need to understand and verify them before using them. For example, I reviewed the AI's groupby suggestion and noticed it depended on sorted input. Using AI effectively means asking questions, checking assumptions, and making the final design decisions myself.
+

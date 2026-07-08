@@ -105,6 +105,27 @@ if st.button("Generate schedule"):
     else:
         scheduler = Scheduler(schedule_date=date.today())
         scheduler.generate_plan(owner)
+
+        conflicts = scheduler.detect_conflicts(owner)
+        if conflicts:
+            for warning in conflicts:
+                st.warning(warning)
+        else:
+            st.success("No scheduling conflicts detected.")
+
         st.write(f"**Today's Schedule ({scheduler.schedule_date}):**")
-        for line in scheduler.explain_plan():
-            st.write(f"- {line}")
+        st.table(
+            [
+                {
+                    "pet": pet.name,
+                    "task": task.name,
+                    "time": task.start_time.strftime("%H:%M") if task.start_time else "-",
+                    "duration_minutes": task.duration_minutes,
+                    "priority": task.priority,
+                }
+                for pet, task in scheduler.plan
+            ]
+        )
+        with st.expander("Why this order?"):
+            for line in scheduler.explain_plan():
+                st.write(f"- {line}")
